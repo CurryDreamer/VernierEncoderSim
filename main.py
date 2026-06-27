@@ -526,6 +526,17 @@ class MainWindow(QtWidgets.QMainWindow):
         rf.addRow("副编码器读数：", self.lbl_raw_sub)
         v.addWidget(rawbox)
 
+        # ---- 游标解算过程组（显示公式 + 当前代入数值）----
+        calcbox = QtWidgets.QGroupBox("游标解算过程（差值 → 绝对圈数 T）")
+        cl = QtWidgets.QVBoxLayout(calcbox)
+        self.lbl_formula = QtWidgets.QLabel()
+        self.lbl_formula.setWordWrap(True)
+        self.lbl_formula.setTextFormat(QtCore.Qt.RichText)
+        self.lbl_formula.setStyleSheet(
+            "font-family:monospace;font-size:12px;color:#dfe6f0;line-height:150%;")
+        cl.addWidget(self.lbl_formula)
+        v.addWidget(calcbox)
+
         # ---- 误差模拟组 ----
         v.addWidget(self._build_error_group())
         v.addStretch(1)
@@ -691,6 +702,22 @@ class MainWindow(QtWidgets.QMainWindow):
         # 4) 左侧编码器原始读数（主=raw_main，副=注入误差并滤波后的当前读数）
         self.lbl_raw_main.setText(f"{int(round(res['raw_main'])) % FULL_SCALE}")
         self.lbl_raw_sub.setText(f"{int(round(res['raw_sec_avg'])) % FULL_SCALE}")
+
+        # 5) 左侧解算公式：把当前数值代入，展示"差值如何得到 T"
+        nm, ns = res["normalized_main"], res["normalized_sub"]
+        d, P, X, T = res["delta"], res["P"], res["X_estimate"], res["T"]
+        Tround = int(round(X - nm))  # 约束前的四舍五入结果
+        self.lbl_formula.setText(
+            "<b>① 归一化角度</b><br>"
+            f"主 m = {nm:.3f}　副 s = {ns:.3f}<br>"
+            "<b>② 相位差</b> δ = s − m (&lt;0 则 +1)<br>"
+            f"δ = {ns:.3f} − {nm:.3f} = <b style='color:#5aa0ff'>{d:.3f}</b><br>"
+            "<b>③ 放大游标周期</b> X = δ × P<br>"
+            f"X = {d:.3f} × {P} = <b>{X:.3f}</b><br>"
+            "<b>④ 四舍五入吸收噪声</b> T = round(X − m)<br>"
+            f"T = round({X:.3f} − {nm:.3f}) = round({X - nm:.3f}) = <b>{Tround}</b><br>"
+            "<b>⑤ 圈数循环约束</b> T = (T mod P + P) mod P<br>"
+            f"T = <b style='color:#ffd34d;font-size:15px'>{T}</b>")
 
 
 # ============================================================================
