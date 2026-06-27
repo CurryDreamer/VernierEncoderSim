@@ -514,6 +514,18 @@ class MainWindow(QtWidgets.QMainWindow):
         pf.addRow("输出轴角度：", self.sp_angle)
         v.addWidget(pos)
 
+        # ---- 编码器原始读数组（实时显示当前读数 0~16383，不画曲线）----
+        rawbox = QtWidgets.QGroupBox("编码器原始读数 (0~16383)")
+        rf = QtWidgets.QFormLayout(rawbox)
+        big = "font-size:20px;font-weight:bold;color:#ffd34d;font-family:monospace;"
+        self.lbl_raw_main = QtWidgets.QLabel("0")
+        self.lbl_raw_main.setStyleSheet(big)
+        self.lbl_raw_sub = QtWidgets.QLabel("0")
+        self.lbl_raw_sub.setStyleSheet(big.replace("#ffd34d", "#5ad06a"))
+        rf.addRow("主编码器读数：", self.lbl_raw_main)
+        rf.addRow("副编码器读数：", self.lbl_raw_sub)
+        v.addWidget(rawbox)
+
         # ---- 误差模拟组 ----
         v.addWidget(self._build_error_group())
         v.addStretch(1)
@@ -675,6 +687,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # 3) 结果文字
         self.lbl_turns.setText(f"绝对圈数 T = {res['T']}")
         self.lbl_out_angle.setText(f"输出轴角度 = {res['output_angle_deg']:.1f}°")
+
+        # 4) 左侧编码器原始读数（主=raw_main，副=注入误差并滤波后的当前读数）
+        self.lbl_raw_main.setText(f"{int(round(res['raw_main'])) % FULL_SCALE}")
+        self.lbl_raw_sub.setText(f"{int(round(res['raw_sec_avg'])) % FULL_SCALE}")
 
 
 # ============================================================================
