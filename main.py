@@ -55,7 +55,8 @@ class SimulationModel:
         self.sub_angle_offset = 0.0
 
         # ---- 误差注入幅度（单位 LSB，0~2000）----
-        self.noise_lsb = 0        # 高频随机噪声
+        self.noise_lsb = 0        # 副齿轮高频随机噪声
+        self.main_noise_lsb = 10  # 主齿轮高频随机噪声（默认 ±10）
         self.backlash_lsb = 0     # 机械齿轮背隙（回差）
         self.distortion_lsb = 0   # 断崖式磁畸变
 
@@ -169,6 +170,10 @@ class SimulationModel:
 
         # 第 1 步：物理联动 -> 原始读数
         raw_main, raw_sub_phys = self._raw_main_sub(phi)
+
+        # 主齿轮也注入一点高频随机噪声（默认 ±10 LSB，可在界面调节）
+        if self.main_noise_lsb > 0:
+            raw_main = (raw_main + np.random.normal(0.0, self.main_noise_lsb / 3.0)) % FULL_SCALE
 
         # 第 2 步：副齿轮软件方向对齐（硬件级反转补偿）后注入误差
         raw_sec = MAX_RAW - raw_sub_phys
@@ -558,18 +563,24 @@ class MainWindow(QtWidgets.QMainWindow):
             return s, lbl
 
         self.sl_noise, self.lbl_noise = make_slider("高频随机噪声")
+        self.sl_mnoise, self.lbl_mnoise = make_slider("主齿轮随机噪声")
         self.sl_backlash, self.lbl_backlash = make_slider("机械齿轮背隙")
         self.sl_distort, self.lbl_distort = make_slider("断崖式磁畸变")
 
         self.sl_noise.valueChanged.connect(
             lambda val: (self.lbl_noise.setText(f"高频随机噪声：{val} LSB"),
                          setattr(self.model, "noise_lsb", val)))
+        self.sl_mnoise.valueChanged.connect(
+            lambda val: (self.lbl_mnoise.setText(f"主齿轮随机噪声：{val} LSB"),
+                         setattr(self.model, "main_noise_lsb", val)))
         self.sl_backlash.valueChanged.connect(
             lambda val: (self.lbl_backlash.setText(f"机械齿轮背隙：{val} LSB"),
                          setattr(self.model, "backlash_lsb", val)))
         self.sl_distort.valueChanged.connect(
             lambda val: (self.lbl_distort.setText(f"断崖式磁畸变：{val} LSB"),
                          setattr(self.model, "distortion_lsb", val)))
+        # 主齿轮噪声默认 ±10（触发一次以同步标签与模型）
+        self.sl_mnoise.setValue(10)
         return grp
 
     # ------------------------------------------------------------------
